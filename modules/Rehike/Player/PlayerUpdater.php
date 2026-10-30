@@ -137,7 +137,10 @@ class PlayerUpdater
         if (false != $status)
         {
             $url = $matches[0];
-            $url = str_replace("player_embed", "player", $url);
+            // The embed page now advertises its own "player_embed" build. The
+            // regular web player build living at the same hash is "player_ias";
+            // rewriting to a bare "player" segment yields a 404 from YouTube.
+            $url = str_replace("player_embed", "player_ias", $url);
             return $url;
         }
         else

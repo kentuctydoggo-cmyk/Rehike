@@ -220,7 +220,14 @@ final class Tasks
 
             // Get the template information for the default video. It's enough to make a request
             // to add watch history.
-            $playbackStatsUrl = $player->playbackTracking->videostatsPlaybackUrl->baseUrl;
+            //
+            // The player response may carry no playback tracking at all (for
+            // example when YouTube answers the player request with
+            // LOGIN_REQUIRED for an unfamiliar visitor), in which case there is
+            // nothing to report and this best-effort step is skipped.
+            $playbackStatsUrl = $player->playbackTracking->videostatsPlaybackUrl->baseUrl ?? null;
+            if (null === $playbackStatsUrl) return;
+
             $pbstatsParams = self::parsePlayerStatsParams($playbackStatsUrl);
 
             // Properties from the playback stats parameters.

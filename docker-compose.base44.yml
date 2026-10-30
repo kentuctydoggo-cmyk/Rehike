@@ -1,0 +1,40 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.base44
+    working_dir: /var/www/html
+    labels:
+      base44.project: Rehike
+      base44.kind: web
+      base44.port: "3000"
+    ports:
+      - "3000:80"
+    volumes:
+      # Live source mount: Apache reads the cloned PHP/Twig source on every
+      # request, so edits show up without rebuilding anything.
+      - ./:/var/www/html
+    # Rehike writes config.json, cache/ and logs/ into its own web root on
+    # first run; the bind mount is root-owned, so make those paths writable for
+    # the Apache worker user before starting the server.
+    command:
+      - sh
+      - -ec
+      - |
+        chmod o+x /var/www/html
+        mkdir -p cache logs
+        chmod 777 cache logs
+        # An empty config.json is rejected by Rehike's config loader, so seed a
+        # valid empty object; Rehike fills in and persists the defaults itself.
+        [ -s config.json ] || printf '{}' > config.json
+        chmod 666 config.json
+        exec apache2-foreground
+    restart: on-failure
+    healthcheck:
+      # /generate_204 is a Rehike route that boots the full application stack
+      # (config, i18n, network DNS bootstrap) and then exits with 204.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1/generate_204"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s

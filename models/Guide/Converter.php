@@ -162,13 +162,30 @@ class Converter
         // History item (only if signed out)
         if (!$signedIn)
         {
-            $secondarySection = $data->items[1]->guideSectionRenderer->items;
-            $historyItem = self::getItemByIcon($secondarySection, InnertubeIcons::WATCH_HISTORY);
-            
-            // Correct icon type
-            self::setIcon($historyItem, "SYSTEM::HISTORY");
+            // InnerTube now interleaves other renderers (such as the sign-in
+            // promo) between guide sections, so the watch history entry can no
+            // longer be assumed to live in the second item.
+            $historyItem = null;
 
-            $response[] = $historyItem;
+            foreach ($data->items as $item)
+            {
+                if (!isset($item->guideSectionRenderer->items)) continue;
+
+                $historyItem = self::getItemByIcon(
+                    $item->guideSectionRenderer->items,
+                    InnertubeIcons::WATCH_HISTORY
+                );
+
+                if (null != $historyItem) break;
+            }
+
+            if (null != $historyItem)
+            {
+                // Correct icon type
+                self::setIcon($historyItem, "SYSTEM::HISTORY");
+
+                $response[] = $historyItem;
+            }
         }
 
         // Response with a synthesised guideSectionRenderer wrapper.

@@ -1,0 +1,20 @@
+# Base44 sandbox image for Rehike.
+# Only serves the runtime: the application source is bind-mounted at runtime,
+# so code edits are picked up on the next request (PHP is interpreted).
+FROM php:8.3-apache
+
+# Rehike routes every request through index.php via the repo's .htaccess.
+RUN a2enmod rewrite \
+ && sed -ri 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+
+# Rehike resolves www.youtube.com itself (Nameserver + BlueLibraries DNS) and
+# pins the result with CURLOPT_RESOLVE. That path requires ext-sockets; without
+# it boot fails wherever the resolver does not answer its CNAME probe.
+RUN docker-php-ext-install sockets
+
+# Rehike renders large Twig templates and buffers whole API responses.
+RUN printf '%s\n' \
+        'memory_limit=512M' \
+        'max_execution_time=120' \
+        'output_buffering=4096' \
+    > /usr/local/etc/php/conf.d/base44.ini
